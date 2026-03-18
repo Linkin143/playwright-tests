@@ -44,6 +44,8 @@ async function process(fileName, PATHS) {
 
     if (status === 'PASSED') {
       await gitManager.pushToGitHub(fileName, status, PATHS);
+    } else {
+      console.log('\n⚠️  Test failed - skipping Git commit');
     }
 
   } catch (error) {

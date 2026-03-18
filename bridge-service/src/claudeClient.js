@@ -1,10 +1,42 @@
+require('dotenv').config();
 const Anthropic = require('@anthropic-ai/sdk');
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let anthropic = null;
+
+function initialize() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('⚠️  ANTHROPIC_API_KEY not found in environment variables');
+    console.log('⚠️  Claude AI integration disabled. Tests will still run and commit to Git.');
+    return false;
+  }
+
+  if (process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
+    console.log('⚠️  ANTHROPIC_API_KEY is not configured');
+    console.log('⚠️  Claude AI integration disabled. Tests will still run and commit to Git.');
+    return false;
+  }
+
+  try {
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+    console.log('✅ Claude AI client initialized');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to initialize Claude AI client:', error.message);
+    return false;
+  }
+}
 
 async function sendResults(testData) {
+  if (!anthropic) {
+    const initialized = initialize();
+    if (!initialized) {
+      console.log('⚠️  Skipping Claude AI notification (API key not configured)');
+      return null;
+    }
+  }
+
   try {
     console.log('\n📤 Sending results to Claude AI...');
 
