@@ -1,0 +1,11 @@
+node_modules/
+test-results/
+playwright-report/
+artifacts/
+generated-tests/*.spec.ts
+.env
+*.log
+.DS_Store
+playwright/.cache/
+bridge-service/node_modules
+bridge-service/.env
