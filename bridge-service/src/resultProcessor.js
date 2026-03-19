@@ -34,19 +34,62 @@ async function process(fileName, PATHS) {
       return;
     }
 
-    const testSuite = results.suites?.[0];
-    const testSpec = testSuite?.specs?.[0];
-    const testResult = testSpec?.tests?.[0]?.results?.[0];
+    console.log('🔍 Debugging JSON structure...');
+    console.log('   Has suites?', !!results.suites);
+    console.log('   Suites length:', results.suites?.length);
+    
+    let testResult = null;
+    let status = 'UNKNOWN';
+    let duration = 0;
+    let error = null;
 
-    if (!testResult) {
-      console.error('❌ No test results found in JSON');
-      console.error('   Results structure:', JSON.stringify(results, null, 2));
-      return;
+    if (results.suites && results.suites.length > 0) {
+      for (const suite of results.suites) {
+        if (suite.specs && suite.specs.length > 0) {
+          for (const spec of suite.specs) {
+            if (spec.tests && spec.tests.length > 0) {
+              for (const test of spec.tests) {
+                if (test.results && test.results.length > 0) {
+                  testResult = test.results[0];
+                  status = testResult.status === 'passed' ? 'PASSED' : 'FAILED';
+                  duration = testResult.duration || 0;
+                  error = testResult.error?.message || null;
+                  break;
+                }
+              }
+              if (testResult) break;
+            }
+          }
+          if (testResult) break;
+        }
+      }
     }
 
-    const status = testResult?.status === 'passed' ? 'PASSED' : 'FAILED';
-    const duration = testResult?.duration || 0;
-    const error = testResult?.error?.message || null;
+    if (!testResult) {
+      console.log('⚠️  Could not find test results in standard structure');
+      console.log('   Checking alternative formats...');
+      
+      if (results.stats) {
+        const passed = results.stats.expected || 0;
+        const failed = results.stats.unexpected || 0;
+        
+        if (passed > 0 && failed === 0) {
+          status = 'PASSED';
+          duration = results.stats.duration || 0;
+        } else if (failed > 0) {
+          status = 'FAILED';
+          duration = results.stats.duration || 0;
+          error = 'Test failed - check console output';
+        }
+      }
+      
+      if (status === 'UNKNOWN') {
+        console.error('❌ Unable to determine test status');
+        console.error('   Full JSON structure:');
+        console.error(JSON.stringify(results, null, 2));
+        return;
+      }
+    }
 
     console.log(`\n📈 Test Results:`);
     console.log(`   File: ${fileName}`);
