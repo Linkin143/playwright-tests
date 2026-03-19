@@ -105,10 +105,13 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'web-interface.html'));
 });
 
-app.listen(PORT, () => {
+
+app.listen(PORT, async () => {
   console.log(`🟢 Bridge Service running on http://localhost:${PORT}`);
   console.log(`📡 API Endpoint: http://localhost:${PORT}/api/receive-test`);
   console.log(`👀 Watching directory: ${PATHS.generatedTests}`);
+  
+  await claudeClient.initialize();
   
   fileWatcher.start(PATHS);
 });
