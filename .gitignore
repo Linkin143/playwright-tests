@@ -1,6 +1,7 @@
 node_modules/
 test-results/
 test-reports/
+test-plans/
 playwright-report/
 artifacts/
 generated-tests/*.spec.ts
