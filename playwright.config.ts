@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
@@ -8,45 +8,45 @@ export default defineConfig({
   workers: 1,
 
   reporter: [
-  ['html', { outputFolder: 'test-results/html-report', open: 'never' }],
-  ['json', { outputFile: 'test-results/results.json' }],
-  ['list'],
-  ['junit', { outputFile: 'test-results/junit.xml' }]
-],
+    ['html', { outputFolder: 'test-results/html-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['list'],
+    ['junit', { outputFile: 'test-results/junit.xml' }]
+  ],
 
   use: {
     trace: "retain-on-failure",
-    // screenshot: "only-on-failure",
     screenshot: "on",
     video: "retain-on-failure",
     actionTimeout: 30000,
     navigationTimeout: 60000,
-    headless:false,
-    launchOptions: {
-    slowMo: 500, 
-  },
+    headless: false,
   },
 
   projects: [
     {
       name: "chromium",
       use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 1920, height: 1080 },
+        browserName: "chromium",
+        viewport: null,
+        launchOptions: {
+          slowMo: 500,
+          args: ['--start-maximized']
+        },
       },
     },
     {
       name: "firefox",
       use: {
-        ...devices["Desktop Firefox"],
-        viewport: { width: 1920, height: 1080 },
+        browserName: "firefox",
+        viewport: null,
       },
     },
     {
       name: "webkit",
       use: {
-        ...devices["Desktop Safari"],
-        viewport: { width: 1920, height: 1080 },
+        browserName: "webkit",
+        viewport: null,
       },
     },
   ],
