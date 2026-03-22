@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./generated-tests",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 1,
@@ -16,7 +16,8 @@ export default defineConfig({
 
   use: {
     trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    // screenshot: "only-on-failure",
+    screenshot: "on",
     video: "retain-on-failure",
     actionTimeout: 30000,
     navigationTimeout: 60000,
