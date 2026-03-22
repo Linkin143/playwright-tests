@@ -6,18 +6,14 @@ const testExecutor = require('./testExecutor');
 function start(PATHS) {
   const watcher = chokidar.watch(PATHS.generatedTests, {
     persistent: true,
-    ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: 2000,
-      pollInterval: 100
-    }
+    ignoreInitial: true
   });
 
   watcher.on('add', async (filePath) => {
     console.log(`\n📄 New test file detected: ${path.basename(filePath)}`);
 
-    console.log('⏳ Waiting 10 seconds before copying file...');
-    await delay(10000);
+    console.log('⏳ Waiting for file to stabilize (no changes)...');
+    await waitForFileStability(filePath, 10000, 30000);
 
     await processNewTest(filePath, PATHS);
   });
@@ -34,14 +30,11 @@ async function processNewTest(filePath, PATHS) {
   const destPath = path.join(PATHS.tests, fileName);
 
   try {
-    // ⏳ Delay before copying
-    console.log('⏳ Copying file after delay...');
     await fs.copyFile(filePath, destPath);
     console.log(`✅ Test file copied to: ${destPath}`);
 
-    // ⏳ Delay before execution
-    console.log('⏳ Waiting 10 seconds before executing test...');
-    await delay(10000);
+    console.log('⏳ Ensuring file is still stable before execution...');
+    await waitForFileStability(destPath, 5000, 15000);
 
     await testExecutor.execute(fileName, PATHS);
 
@@ -50,7 +43,39 @@ async function processNewTest(filePath, PATHS) {
   }
 }
 
-// ✅ Delay helper
+// 🔥 Smart stability checker
+async function waitForFileStability(filePath, checkInterval = 5000, stableDuration = 30000) {
+  let lastSize = -1;
+  let stableTime = 0;
+
+  while (true) {
+    try {
+      const stats = await fs.stat(filePath);
+      const currentSize = stats.size;
+
+      if (currentSize === lastSize) {
+        stableTime += checkInterval;
+        console.log(`⏳ File stable for ${stableTime / 1000}s`);
+
+        if (stableTime >= stableDuration) {
+          console.log('✅ File is stable, proceeding...');
+          break;
+        }
+      } else {
+        stableTime = 0;
+        lastSize = currentSize;
+        console.log('🔄 File still changing...');
+      }
+
+    } catch (err) {
+      console.log('⚠️ Waiting for file to be accessible...');
+    }
+
+    await delay(checkInterval);
+  }
+}
+
+// helper delay
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
