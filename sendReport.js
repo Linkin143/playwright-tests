@@ -38,13 +38,18 @@ async function sendEmail() {
   }
 
   const total = passed + failed;
+  
+const reportUrl = process.env.REPORT_URL || 'Not Available';
 
-  const summary = `
+const summary = `
 Playwright + Allure Report
 
 Total: ${total}
 Passed: ${passed}
 Failed: ${failed}
+
+🔗 Live Report:
+${reportUrl}
 
 Browser: Chromium + Firefox
 Environment: GitHub Actions
