@@ -30,8 +30,8 @@ async function sendEmail() {
     results.suites.forEach(suite => {
       suite.specs.forEach(spec => {
         spec.tests.forEach(test => {
-          if (test.status === 'passed') passed++;
-          if (test.status === 'failed') failed++;
+          if (test.status === 'PASSED') passed++;
+          if (test.status === 'FAILED') failed++;
         });
       });
     });
