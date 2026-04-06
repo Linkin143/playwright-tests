@@ -1,61 +1,80 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const fs = require('fs');
-const path = require('path');
 const { execSync } = require('child_process');
 
 async function sendEmail() {
-  // ✅ Step 1: Generate Allure report
+  // ✅ Generate Allure report
   try {
     execSync('npx allure generate allure-results --clean -o allure-report', { stdio: 'inherit' });
   } catch (e) {
     console.log('Allure report generation failed');
   }
 
-  // ✅ Step 2: Zip Allure report
-  const zipName = 'allure-report.zip';
-  try {
-    execSync(`zip -r ${zipName} allure-report`);
-  } catch (e) {
-    console.log('Zipping failed');
-  }
-
-  // ✅ Step 3: Read JSON results
+  // ✅ Extract results
   let passed = 0;
   let failed = 0;
 
-  if (fs.existsSync('./test-results/results.json')) {
-    const results = JSON.parse(fs.readFileSync('./test-results/results.json', 'utf-8'));
-
-    results.suites.forEach(suite => {
-      suite.specs.forEach(spec => {
-        spec.tests.forEach(test => {
-          if (test.status === 'PASSED') passed++;
-          if (test.status === 'FAILED') failed++;
+  function extractResults(data) {
+    function walk(suite) {
+      if (suite.specs) {
+        suite.specs.forEach(spec => {
+          spec.tests.forEach(test => {
+            if (test.results && test.results.length > 0) {
+              const lastResult = test.results[test.results.length - 1];
+              if (lastResult.status === 'passed') passed++;
+              if (lastResult.status === 'failed') failed++;
+            }
+          });
         });
-      });
-    });
+      }
+      if (suite.suites) {
+        suite.suites.forEach(child => walk(child));
+      }
+    }
+    walk(data);
+  }
+
+  if (fs.existsSync('./test-results/results.json')) {
+    const results = JSON.parse(
+      fs.readFileSync('./test-results/results.json', 'utf-8')
+    );
+    extractResults(results);
   }
 
   const total = passed + failed;
-  
-const reportUrl = process.env.REPORT_URL || 'Not Available';
+  const reportUrl = process.env.REPORT_URL || '#';
 
-const summary = `
-Playwright + Allure Report
+  // ✅ HTML Email Template
+  const htmlBody = `
 
-Total: ${total}
-Passed: ${passed}
-Failed: ${failed}
+  <div style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>🧪 Playwright Test Report</h2>
 
-🔗 Live Report:
-${reportUrl}
+<p><strong>Total:</strong> ${total}</p>
+<p style="color: green;"><strong>Passed:</strong> ${passed}</p>
+<p style="color: red;"><strong>Failed:</strong> ${failed}</p>
 
-Browser: Chromium + Firefox
-Environment: GitHub Actions
-`;
+<hr/>
 
-  // ✅ Step 4: Send Email
+<p>🔗 View Full Allure Report:</p>
+
+<a href="${reportUrl}" 
+   style="display:inline-block;padding:10px 20px;background:#007bff;color:#fff;
+   text-decoration:none;border-radius:5px;">
+   Open Report
+</a>
+
+<br/><br/>
+
+<small>
+  Browser: Chromium + Firefox <br/>
+  Environment: GitHub Actions
+</small>
+  </div>
+  `;
+
+  // ✅ Email setup
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -68,20 +87,10 @@ Environment: GitHub Actions
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
     subject: `Test Report: ${failed > 0 ? 'FAILED ❌' : 'PASSED ✅'}`,
-    text: summary,
-    attachments: [
-      // {
-      //   filename: 'allure-report.zip',
-      //   path: path.join(__dirname, zipName),
-      // },
-      {
-        filename: 'html-report.html',
-        path: path.join(__dirname, 'test-results/html-report/index.html'),
-      }
-    ],
+    html: htmlBody, // ✅ HTML instead of text
   });
 
-  console.log('✅ Email sent with Allure report!');
+  console.log('✅ HTML Email sent successfully!');
 }
 
 sendEmail();
