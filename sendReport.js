@@ -70,10 +70,10 @@ Environment: GitHub Actions
     subject: `Test Report: ${failed > 0 ? 'FAILED ❌' : 'PASSED ✅'}`,
     text: summary,
     attachments: [
-      {
-        filename: 'allure-report.zip',
-        path: path.join(__dirname, zipName),
-      },
+      // {
+      //   filename: 'allure-report.zip',
+      //   path: path.join(__dirname, zipName),
+      // },
       {
         filename: 'html-report.html',
         path: path.join(__dirname, 'test-results/html-report/index.html'),
