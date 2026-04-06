@@ -1,0 +1,42 @@
+name: Playwright Scheduled Test
+
+on:
+  schedule:
+    - cron: '0 4 * * *'  # 9:30 AM IST
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Tests
+        run: npx playwright test
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: test-results/html-report/
+
+      - name: Send Email
+        if: always()
+        run: node sendReport.js
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
