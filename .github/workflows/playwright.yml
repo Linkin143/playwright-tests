@@ -4,6 +4,25 @@ on:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Select test execution mode"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - file
+          - folder
+          - multiple
+
+      test_path:
+        description: "Provide file or folder path (for file/folder mode)"
+        required: false
+
+      test_list:
+        description: "Comma-separated test files (for multiple mode)"
+        required: false
 
 jobs:
   test:
@@ -24,13 +43,32 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      - name: Run tests
-        run: npx playwright test
+      # 🔥 Dynamic Test Execution (CORE LOGIC)
+      - name: Run Playwright Tests (Dynamic)
+        run: |
+          echo "Selected mode: ${{ github.event.inputs.mode }}"
+
+          if [ "${{ github.event.inputs.mode }}" = "file" ]; then
+            echo "Running single file: ${{ github.event.inputs.test_path }}"
+            npx playwright test "${{ github.event.inputs.test_path }}"
+
+          elif [ "${{ github.event.inputs.mode }}" = "folder" ]; then
+            echo "Running folder: ${{ github.event.inputs.test_path }}"
+            npx playwright test "${{ github.event.inputs.test_path }}"
+
+          elif [ "${{ github.event.inputs.mode }}" = "multiple" ]; then
+            echo "Running multiple files"
+            FILES=$(echo "${{ github.event.inputs.test_list }}" | tr ',' ' ')
+            npx playwright test $FILES
+
+          else
+            echo "Running all tests"
+            npx playwright test
+          fi
 
       - name: Generate Allure Report
         run: npx allure generate allure-results --clean -o allure-report
 
-      # 🚀 Deploy to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
