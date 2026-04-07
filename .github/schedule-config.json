@@ -1,0 +1,30 @@
+{
+"default": {
+"mode": "all"
+},
+"monday": {
+"mode": "folder",
+"test_path": "tests/msn"
+},
+"tuesday": {
+"mode": "file",
+"test_path": "tests/example.spec.ts"
+},
+"wednesday": {
+"mode": "multiple",
+"test_list": "tests/msn/a.spec.ts,tests/msn/b.spec.ts"
+},
+"thursday": {
+"mode": "all"
+},
+"friday": {
+"mode": "folder",
+"test_path": "tests/msn"
+},
+"saturday": {
+"mode": "skip"
+},
+"sunday": {
+"mode": "skip"
+}
+}

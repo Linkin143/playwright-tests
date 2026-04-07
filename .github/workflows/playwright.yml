@@ -2,12 +2,12 @@ name: Playwright + Allure Report
 
 on:
   schedule:
-    - cron: '40 3 * * 1-5'  # 09:10 AM IST (Mon–Fri only)
+    - cron: '40 3 * * *'  # 09:10 AM IST daily
   workflow_dispatch:
     inputs:
       mode:
         description: "Select test execution mode"
-        required: true
+        required: false
         default: "all"
         type: choice
         options:
@@ -18,7 +18,7 @@ on:
 
       test_path:
         description: |
-          Provide file or folder path
+          File or folder path
           Examples:
           - tests/example.spec.ts
           - tests/msn/
@@ -26,7 +26,7 @@ on:
 
       test_list:
         description: |
-          Comma-separated files
+          Comma-separated test files
           Example:
           tests/msn/a.spec.ts,tests/msn/b.spec.ts
         required: false
@@ -50,22 +50,61 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      # 🔥 Dynamic Execution
+      # 🧠 Load schedule config (for scheduled runs)
+      - name: Load Schedule Config
+        id: config
+        run: |
+          DAY=$(date +%A | tr '[:upper:]' '[:lower:]')
+          echo "Today: $DAY"
+
+          CONFIG_FILE=".github/schedule-config.json"
+
+          if [ -f "$CONFIG_FILE" ]; then
+            MODE=$(jq -r --arg day "$DAY" '.[$day].mode // .default.mode' $CONFIG_FILE)
+            TEST_PATH=$(jq -r --arg day "$DAY" '.[$day].test_path // empty' $CONFIG_FILE)
+            TEST_LIST=$(jq -r --arg day "$DAY" '.[$day].test_list // empty' $CONFIG_FILE)
+          else
+            echo "Config file not found, using defaults"
+            MODE="all"
+          fi
+
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
+          echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
+
+      # 🔥 Dynamic Execution (Manual + Schedule)
       - name: Run Playwright Tests
         run: |
-          MODE="${{ github.event.inputs.mode }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ github.event.inputs.mode || 'all' }}"
+            TEST_PATH="${{ github.event.inputs.test_path }}"
+            TEST_LIST="${{ github.event.inputs.test_list }}"
+            echo "Manual run"
+          else
+            MODE="${{ steps.config.outputs.mode }}"
+            TEST_PATH="${{ steps.config.outputs.test_path }}"
+            TEST_LIST="${{ steps.config.outputs.test_list }}"
+            echo "Scheduled run"
+          fi
+
+          echo "Mode: $MODE"
+
+          if [ "$MODE" = "skip" ]; then
+            echo "Skipping execution for today"
+            exit 0
+          fi
 
           if [ "$MODE" = "file" ]; then
-            echo "Running file: ${{ github.event.inputs.test_path }}"
-            npx playwright test "${{ github.event.inputs.test_path }}"
+            echo "Running file: $TEST_PATH"
+            npx playwright test "$TEST_PATH"
 
           elif [ "$MODE" = "folder" ]; then
-            echo "Running folder: ${{ github.event.inputs.test_path }}"
-            npx playwright test "${{ github.event.inputs.test_path }}"
+            echo "Running folder: $TEST_PATH"
+            npx playwright test "$TEST_PATH"
 
           elif [ "$MODE" = "multiple" ]; then
             echo "Running multiple files"
-            FILES=$(echo "${{ github.event.inputs.test_list }}" | tr ',' ' ')
+            FILES=$(echo "$TEST_LIST" | tr ',' ' ')
             npx playwright test $FILES
 
           else
@@ -74,9 +113,11 @@ jobs:
           fi
 
       - name: Generate Allure Report
+        if: always()
         run: npx allure generate allure-results --clean -o allure-report
 
       - name: Deploy Allure Report
+        if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
