@@ -2,7 +2,7 @@ name: Playwright + Allure Report
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '40 3 * * 1-5'  # 09:10 AM IST (Mon–Fri only)
   workflow_dispatch:
     inputs:
       mode:
@@ -17,11 +17,18 @@ on:
           - multiple
 
       test_path:
-        description: "Provide file or folder path (for file/folder mode)"
+        description: |
+          Provide file or folder path
+          Examples:
+          - tests/example.spec.ts
+          - tests/msn/
         required: false
 
       test_list:
-        description: "Comma-separated test files (for multiple mode)"
+        description: |
+          Comma-separated files
+          Example:
+          tests/msn/a.spec.ts,tests/msn/b.spec.ts
         required: false
 
 jobs:
@@ -43,20 +50,20 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      # 🔥 Dynamic Test Execution (CORE LOGIC)
-      - name: Run Playwright Tests (Dynamic)
+      # 🔥 Dynamic Execution
+      - name: Run Playwright Tests
         run: |
-          echo "Selected mode: ${{ github.event.inputs.mode }}"
+          MODE="${{ github.event.inputs.mode }}"
 
-          if [ "${{ github.event.inputs.mode }}" = "file" ]; then
-            echo "Running single file: ${{ github.event.inputs.test_path }}"
+          if [ "$MODE" = "file" ]; then
+            echo "Running file: ${{ github.event.inputs.test_path }}"
             npx playwright test "${{ github.event.inputs.test_path }}"
 
-          elif [ "${{ github.event.inputs.mode }}" = "folder" ]; then
+          elif [ "$MODE" = "folder" ]; then
             echo "Running folder: ${{ github.event.inputs.test_path }}"
             npx playwright test "${{ github.event.inputs.test_path }}"
 
-          elif [ "${{ github.event.inputs.mode }}" = "multiple" ]; then
+          elif [ "$MODE" = "multiple" ]; then
             echo "Running multiple files"
             FILES=$(echo "${{ github.event.inputs.test_list }}" | tr ',' ' ')
             npx playwright test $FILES
@@ -69,7 +76,7 @@ jobs:
       - name: Generate Allure Report
         run: npx allure generate allure-results --clean -o allure-report
 
-      - name: Deploy Allure Report to GitHub Pages
+      - name: Deploy Allure Report
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
