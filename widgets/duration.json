@@ -1,1 +1,1 @@
-[]
+[{"uid":"706633a49223286c","name":"Verify weather widget, navigate to forecast, return and check stability","time":{"start":1775651762178,"stop":1775651788958,"duration":26780},"status":"passed","severity":"normal"},{"uid":"e84da63c8b9ccaa7","name":"Verify weather widget, navigate to forecast, return and check stability","time":{"start":1775651762171,"stop":1775651793987,"duration":31816},"status":"passed","severity":"normal"}]

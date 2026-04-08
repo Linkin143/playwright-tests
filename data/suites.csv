@@ -1,0 +1,3 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","26780","Verify weather widget, navigate to forecast, return and check stability","firefox","2026-04-08","passed","2026-04-08","MSN – Weather Widget: Display, Navigation, and Stability","msn/9909_msn_weather_widget.spec.ts","",""
+"","31816","Verify weather widget, navigate to forecast, return and check stability","chromium","2026-04-08","passed","2026-04-08","MSN – Weather Widget: Display, Navigation, and Stability","msn/9909_msn_weather_widget.spec.ts","",""
