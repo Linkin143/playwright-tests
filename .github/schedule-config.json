@@ -8,11 +8,11 @@
 },
 "tuesday": {
 "mode": "file",
-"test_path": "tests/example.spec.ts"
+"test_path": "tests/msn/007_msn_header_verify.spec.ts"
 },
 "wednesday": {
 "mode": "multiple",
-"test_list": "tests/msn/a.spec.ts,tests/msn/b.spec.ts"
+"test_list": "tests/msn/9903_msn_settings_panel.spec.ts,tests/msn/9903_msn_settings_panel.spec.ts"
 },
 "thursday": {
 "mode": "all"
