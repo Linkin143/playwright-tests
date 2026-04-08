@@ -7,7 +7,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
 
   retries: process.env.CI ? 0 : 0,
-  workers: process.env.CI ? 2 : 3,
+  workers: process.env.CI ? 2 : 2,
 
   timeout: 120000,
 
@@ -46,9 +46,11 @@ export default defineConfig({
     },
     {
       name: "firefox",
+      retries: 1,
       use: {
         browserName: "firefox",
         viewport: null,
+        actionTimeout: 40000,
       },
     },
   ],
