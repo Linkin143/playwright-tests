@@ -1,3 +1,0 @@
-"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"","37465","Follow ""The Times Of India"" and ""India Today"" via Discover search","firefox","2026-04-07","passed","2026-04-07","MSN – Personalize: Follow TOI and India Today","msnLogin/9901_msn_personalize_follow.spec.ts","",""
-"","33263","Follow ""The Times Of India"" and ""India Today"" via Discover search","chromium","2026-04-07","passed","2026-04-07","MSN – Personalize: Follow TOI and India Today","msnLogin/9901_msn_personalize_follow.spec.ts","",""
