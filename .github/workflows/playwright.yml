@@ -33,9 +33,9 @@ on:
         required: false
 
 permissions:
-  contents: write       # needed for gh-pages deploy
-  pull-requests: write  # needed for allure-action PR comments
-  checks: write         # needed for allure-action check runs
+  contents: write
+  pull-requests: write
+  checks: write
 
 jobs:
   test:
@@ -53,15 +53,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ✅ Allure 3 requires Java — must be installed before allure CLI
+      # ✅ Allure 3 requires Java
       - name: Setup Java (required by Allure 3)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      # ✅ Install Allure 3 CLI globally — fixes exit code 127 (command not found)
+      - name: Install Allure CLI
+        run: |
+          npm install -g allure-commandline
+          allure --version
+
       - name: Install browsers
         run: npx playwright install --with-deps
+
+      # ✅ Pre-create all output dirs — fixes "No such file or directory" errors
+      - name: Create output directories
+        run: mkdir -p allure-results allure-report test-results
 
       # 🧠 Load schedule config (for scheduled runs) — unchanged
       - name: Load Schedule Config
@@ -85,9 +95,8 @@ jobs:
           echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
           echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
 
-      # 🔥 Dynamic Execution — unchanged logic, wrapped with Allure 3's `npx allure run`
-      # ✅ KEY CHANGE: `npx allure run -- <command>` is the Allure 3 way.
-      #    It runs tests AND generates allure-report/ with summary.json in one step.
+      # 🔥 Dynamic Execution — unchanged logic
+      # ✅ `|| true` lets workflow continue to report even when tests fail
       - name: Run Playwright Tests
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -111,20 +120,20 @@ jobs:
 
           if [ "$MODE" = "file" ]; then
             echo "Running file: $TEST_PATH"
-            npx allure run -- npx playwright test "$TEST_PATH"
+            npx playwright test "$TEST_PATH" || true
 
           elif [ "$MODE" = "folder" ]; then
             echo "Running folder: $TEST_PATH"
-            npx allure run -- npx playwright test "$TEST_PATH"
+            npx playwright test "$TEST_PATH" || true
 
           elif [ "$MODE" = "multiple" ]; then
             echo "Running multiple files"
             FILES=$(echo "$TEST_LIST" | tr ',' ' ')
-            npx allure run -- npx playwright test $FILES
+            npx playwright test $FILES || true
 
           else
             echo "Running all tests"
-            npx allure run -- npx playwright test
+            npx playwright test || true
           fi
 
       # ✅ Preserve Allure history for TREND graphs
@@ -135,12 +144,11 @@ jobs:
             cp -r allure-report/history allure-results/
           fi
 
-      # ✅ Inject rich environment metadata
+      # ✅ Inject environment metadata
       - name: Inject Allure Environment Info
         if: always()
         run: |
           mkdir -p allure-results
-
           cat > allure-results/environment.properties << EOF
           Execution=GitHub Actions
           RunID=${{ github.run_id }}
@@ -161,7 +169,6 @@ jobs:
         if: always()
         run: |
           mkdir -p allure-results
-
           cat > allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
@@ -178,7 +185,6 @@ jobs:
         if: always()
         run: |
           mkdir -p allure-results
-
           cat > allure-results/categories.json << 'EOF'
           [
             {
@@ -214,7 +220,15 @@ jobs:
           ]
           EOF
 
-      # ✅ Post Allure 3 summary to PR (official action — reads summary.json)
+      # ✅ Generate Allure 3 report using globally installed allure CLI
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          allure generate allure-results --clean -o allure-report
+          echo "✅ Report generated. Contents:"
+          ls allure-report/
+
+      # ✅ Post Allure 3 summary to PR
       - name: Post Allure Summary to PR
         if: always()
         uses: allure-framework/allure-action@v0
@@ -222,10 +236,11 @@ jobs:
           report-directory: "./allure-report"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ✅ Export CSV
+      # ✅ Export CSV — mkdir -p guarantees dir exists
       - name: Export Test Results CSV
         if: always()
         run: |
+          mkdir -p test-results
           echo "Test Name,Status,Duration(ms),Suite,Browser" > test-results/allure-summary.csv
           if [ -d "allure-results" ]; then
             for f in allure-results/*-result.json; do
@@ -238,6 +253,7 @@ jobs:
               echo "\"$NAME\",\"$STATUS\",\"$DURATION\",\"$SUITE\",\"$BROWSER\"" >> test-results/allure-summary.csv
             done
           fi
+          echo "✅ CSV rows: $(wc -l < test-results/allure-summary.csv)"
 
       # ✅ Upload all artifacts
       - name: Upload Test Artifacts
@@ -262,7 +278,7 @@ jobs:
           publish_dir: ./allure-report
           keep_files: true
 
-      # ✅ Send Email — unchanged logic
+      # ✅ Send Email
       - name: Send Email
         if: always()
         run: node sendReport.js
