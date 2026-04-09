@@ -214,7 +214,11 @@ jobs:
       - name: Generate Allure Report
         if: always()
         run: |
-          allure generate allure-results -o allure-report --name "Test Lumen Automation Report"
+          allure generate allure-results -o allure-report --name "Test Lumen Automation Report" || {
+            echo "❌ Allure generate failed. Printing logs:"
+            cat /home/runner/.allure/logs/*.log 2>/dev/null || echo "No logs found"
+            exit 1
+          }
           echo "✅ Report generated. Contents:"
           ls allure-report/
 
