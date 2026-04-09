@@ -1,1 +1,1 @@
-{"reportName":"Playwright Report — Run #18 (main)","testRuns":[],"statistic":{"failed":0,"broken":0,"skipped":0,"passed":2,"unknown":0,"total":2},"time":{"start":1775746692081,"stop":1775746693456,"duration":1375,"minDuration":621,"maxDuration":1363,"sumDuration":1984}}
+{"reportName":"Allure Report — playwright-tests","testRuns":[],"statistic":{"failed":0,"broken":0,"skipped":0,"passed":2,"unknown":0,"total":2},"time":{"start":1775749291104,"stop":1775749292450,"duration":1346,"minDuration":648,"maxDuration":1346,"sumDuration":1994}}
