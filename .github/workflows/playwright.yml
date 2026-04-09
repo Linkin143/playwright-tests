@@ -2,7 +2,7 @@ name: Playwright + Allure Report
 
 on:
   schedule:
-    - cron: '40 3 * * *'  # 09:10 AM IST daily
+    - cron: '40 3 * * *'  # 09:10 IST daily
 
   workflow_dispatch:
     inputs:
@@ -62,11 +62,11 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      # ✅ Create allure dirs — test-results already exists in repo
+      # ✅ Create all needed dirs at runtime
       - name: Create output directories
         run: mkdir -p allure-results allure-report test-results
 
-      # 🧠 Load schedule config — unchanged
+      # 🧠 Load schedule config
       - name: Load Schedule Config
         id: config
         run: |
@@ -88,8 +88,7 @@ jobs:
           echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
           echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
 
-      # 🔥 Dynamic Execution — unchanged logic
-      # ✅ `|| true` lets workflow continue to reporting even when tests fail
+      # 🔥 Dynamic Execution
       - name: Run Playwright Tests
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -137,26 +136,7 @@ jobs:
             cp -r allure-report/history allure-results/
           fi
 
-      # ✅ Inject environment metadata
-      - name: Inject Allure Environment Info
-        if: always()
-        run: |
-          cat > allure-results/environment.properties << EOF
-          Execution=GitHub Actions
-          RunID=${{ github.run_id }}
-          RunNumber=${{ github.run_number }}
-          Branch=${{ github.ref_name }}
-          Commit=${{ github.sha }}
-          Actor=${{ github.actor }}
-          Repository=${{ github.repository }}
-          ExecutionMode=${{ github.event.inputs.mode || steps.config.outputs.mode }}
-          NodeVersion=$(node --version)
-          OS=$(uname -s)
-          OSRelease=$(uname -r)
-          ReportURL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-          EOF
-
-      # ✅ Executor info
+      # ✅ Executor info only — categories & environmentInfo handled by playwright.config.ts
       - name: Add Allure Executor Info
         if: always()
         run: |
@@ -166,62 +146,22 @@ jobs:
             "type": "github",
             "buildName": "Run #${{ github.run_number }} — ${{ github.ref_name }}",
             "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/",
-            "reportName": "Allure Report — ${{ github.event.repository.name }}"
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOF
 
-      # ✅ Failure categories
-      - name: Add Allure Failure Categories
-        if: always()
-        run: |
-          cat > allure-results/categories.json << 'EOF'
-          [
-            {
-              "name": "⏱ Timeout Issues",
-              "matchedStatuses": ["failed", "broken"],
-              "messageRegex": ".*[Tt]imeout.*"
-            },
-            {
-              "name": "🔍 Element Not Found",
-              "matchedStatuses": ["failed", "broken"],
-              "messageRegex": ".*element.*|.*locator.*|.*selector.*"
-            },
-            {
-              "name": "✅ Assertion Failures",
-              "matchedStatuses": ["failed"],
-              "messageRegex": ".*expect.*|.*assert.*|.*toBe.*|.*toEqual.*"
-            },
-            {
-              "name": "🌐 Navigation Failures",
-              "matchedStatuses": ["failed", "broken"],
-              "messageRegex": ".*navigation.*|.*net::ERR.*|.*ERR_.*"
-            },
-            {
-              "name": "🔐 Auth / Login Failures",
-              "matchedStatuses": ["failed", "broken"],
-              "messageRegex": ".*login.*|.*auth.*|.*401.*|.*403.*"
-            },
-            {
-              "name": "💥 Unexpected Errors",
-              "matchedStatuses": ["broken"],
-              "messageRegex": ".*"
-            }
-          ]
-          EOF
-
       # ✅ Generate Allure 3 report
+      # Uses allurerc.mjs automatically for name + logo
       - name: Generate Allure Report
         if: always()
         run: |
-          rm -rf allure-report
-          echo "📂 allure-results contents:"
-          ls -la allure-results/ || echo "allure-results is empty or missing"
-          allure generate allure-results -o allure-report --name "Test Lumen Automation Report" || {
+          rm -rf allure-report allure-report-tmp
+          allure generate allure-results -o allure-report-tmp || {
             echo "❌ Allure generate failed. Full log:"
             cat /home/runner/.allure/logs/*.log
             exit 1
           }
+          mv allure-report-tmp allure-report
           echo "✅ Report generated. Contents:"
           ls allure-report/
 

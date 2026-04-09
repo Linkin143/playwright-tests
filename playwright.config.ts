@@ -23,14 +23,13 @@ export default defineConfig({
     ["json", { outputFile: "test-results/results.json" }],
     ["junit", { outputFile: "test-results/junit.xml" }],
     [
-      // ✅ Allure 3 — package: allure-playwright (npm install --save-dev allure-playwright)
       "allure-playwright",
       {
         resultsDir: "allure-results",
         detail: true,
         suiteTitle: true,
 
-        // 🔗 Link templates
+        // 🔗 Link templates — customize to your tools
         links: {
           issue: {
             nameTemplate: "Issue #%s",
@@ -45,7 +44,7 @@ export default defineConfig({
           },
         },
 
-        // 🗂 Failure categories
+        // 🗂 Failure categories — handled HERE only (removed from workflow)
         categories: [
           {
             name: "⏱ Timeout Issues",
@@ -85,7 +84,7 @@ export default defineConfig({
           },
         ],
 
-        // 🖥 Environment info on Allure 3 dashboard
+        // 🖥 Environment info — handled HERE only (removed from workflow)
         environmentInfo: {
           os_platform: os.platform(),
           os_release: os.release(),
