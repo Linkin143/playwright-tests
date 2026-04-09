@@ -23,19 +23,14 @@ export default defineConfig({
     ["json", { outputFile: "test-results/results.json" }],
     ["junit", { outputFile: "test-results/junit.xml" }],
     [
+      // ✅ Allure 3 — package: allure-playwright (npm install --save-dev allure-playwright)
       "allure-playwright",
       {
         resultsDir: "allure-results",
-
-        // ✅ Show full detail and suite titles
         detail: true,
         suiteTitle: true,
 
-        // ✅ Customize report name based on test file
-        // Each spec file gets its own suite label derived from its filename
-        suiteLabels: true,
-
-        // ✅ External links (customize URLs to match your tools)
+        // 🔗 Link templates
         links: {
           issue: {
             nameTemplate: "Issue #%s",
@@ -46,12 +41,11 @@ export default defineConfig({
             urlTemplate: "https://tms.example.com/%s",
           },
           jira: {
-            urlTemplate: (v: string) =>
-              `https://jira.example.com/browse/${v}`,
+            urlTemplate: (v: string) => `https://jira.example.com/browse/${v}`,
           },
         },
 
-        // ✅ Failure categories — shown in Allure 3 dashboard
+        // 🗂 Failure categories
         categories: [
           {
             name: "⏱ Timeout Issues",
@@ -91,7 +85,7 @@ export default defineConfig({
           },
         ],
 
-        // ✅ Environment info shown on Allure 3 dashboard
+        // 🖥 Environment info on Allure 3 dashboard
         environmentInfo: {
           os_platform: os.platform(),
           os_release: os.release(),
