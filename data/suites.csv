@@ -1,3 +1,3 @@
 "DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"","1329","homepage test","firefox","2026-04-09","passed","2026-04-09","","example.spec.ts","",""
-"","587","homepage test","chromium","2026-04-09","passed","2026-04-09","","example.spec.ts","",""
+"","614","homepage test","chromium","2026-04-09","passed","2026-04-09","","example.spec.ts","",""
+"","1348","homepage test","firefox","2026-04-09","passed","2026-04-09","","example.spec.ts","",""
