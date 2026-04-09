@@ -2,7 +2,7 @@ name: Playwright + Allure Report
 
 on:
   schedule:
-    - cron: '40 3 * * *'  # 09:10 AM IST daily
+    - cron: '42 17 * * *'  #(24H)3:40 + 5:30 = 9:10 AM(24H) IST ✅ daily
 
   workflow_dispatch:
     inputs:
