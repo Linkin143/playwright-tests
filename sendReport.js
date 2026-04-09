@@ -4,10 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 async function sendEmail() {
-  // ❌ REMOVED: execSync('npx allure generate ...') was overwriting the
-  //    already-generated Allure 3 report deployed to GitHub Pages.
-  //    The workflow handles report generation + deployment — this file only sends email.
-
   let passed = 0;
   let failed = 0;
   let skipped = 0;
@@ -17,10 +13,10 @@ async function sendEmail() {
 
   function getFailureReason(errorMsg = '') {
     if (errorMsg.includes('Timeout') || errorMsg.includes('timeout')) return '⏱ Timeout';
-    if (errorMsg.includes('expect') || errorMsg.includes('assert')) return '❌ Assertion';
+    if (errorMsg.includes('expect') || errorMsg.includes('assert'))   return '❌ Assertion';
     if (errorMsg.includes('locator') || errorMsg.includes('element')) return '🔍 Element Issue';
     if (errorMsg.includes('net::ERR') || errorMsg.includes('navigation')) return '🌐 Navigation';
-    if (errorMsg.includes('login') || errorMsg.includes('auth')) return '🔐 Auth Failure';
+    if (errorMsg.includes('login') || errorMsg.includes('auth'))      return '🔐 Auth Failure';
     return '⚠️ Other';
   }
 
@@ -32,7 +28,7 @@ async function sendEmail() {
             if (test.results && test.results.length > 0) {
               const lastResult = test.results[test.results.length - 1];
 
-              if (lastResult.status === 'passed') passed++;
+              if (lastResult.status === 'passed')  passed++;
               if (lastResult.status === 'skipped') skipped++;
 
               if (lastResult.status === 'failed') {
@@ -44,7 +40,7 @@ async function sendEmail() {
                   title: spec.title,
                   reason,
                   browser,
-                  error: errorMsg.split('\n')[0].slice(0, 120), // first line, trimmed
+                  error: errorMsg.split('\n')[0].slice(0, 120),
                 });
 
                 // 📸 Attach screenshots if exist
@@ -79,7 +75,7 @@ async function sendEmail() {
     extractResults(results);
   }
 
-  const total = passed + failed + skipped;
+  const total       = passed + failed + skipped;
   const durationSec = (totalDuration / 1000).toFixed(2);
   const durationMin = (totalDuration / 60000).toFixed(1);
   const passPercent = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
@@ -87,20 +83,34 @@ async function sendEmail() {
   const statusColor = failed > 0 ? '#dc3545' : '#28a745';
   const statusLabel = failed > 0 ? 'FAILED' : 'PASSED';
 
-  // ✅ REPORT_URL comes from workflow env — points to GitHub Pages Allure 3 report
   const reportUrl = process.env.REPORT_URL || '#';
-
-  // Read run metadata from environment (injected by workflow)
   const runNumber = process.env.GITHUB_RUN_NUMBER || 'N/A';
-  const branch = process.env.GITHUB_REF_NAME || 'N/A';
-  const actor = process.env.GITHUB_ACTOR || 'N/A';
-  const repo = process.env.GITHUB_REPOSITORY || 'N/A';
-  const commitSha = (process.env.GITHUB_SHA || '').slice(0, 7);
-  const runUrl = process.env.GITHUB_RUN_ID
+  const branch    = process.env.GITHUB_REF_NAME   || 'N/A';
+  const actor     = process.env.GITHUB_ACTOR      || 'N/A';
+  const repo      = process.env.GITHUB_REPOSITORY || 'N/A';
+  const commitSha = (process.env.GITHUB_SHA       || '').slice(0, 7);
+  const runUrl    = process.env.GITHUB_RUN_ID
     ? `https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
     : '#';
 
-  // ✅ Build failed tests table rows
+  // ✅ Attach CSV if it exists — named with run number for easy identification
+  const csvPath = './test-results/allure-summary.csv';
+  if (fs.existsSync(csvPath)) {
+    attachments.push({
+      filename: `test-results-run-${runNumber}.csv`,
+      path: csvPath,
+      contentType: 'text/csv',
+    });
+    console.log(`📎 CSV attached: test-results-run-${runNumber}.csv`);
+  } else {
+    console.log('⚠️ CSV not found, skipping CSV attachment');
+  }
+
+  // ✅ Attach up to 5 screenshots (after CSV so CSV is always first)
+  const screenshotAttachments = attachments.filter(a => a.contentType !== 'text/csv');
+  const csvAttachments        = attachments.filter(a => a.contentType === 'text/csv');
+  attachments = [...csvAttachments, ...screenshotAttachments.slice(0, 5)];
+
   const failedRows = failedTests.length > 0
     ? failedTests.slice(0, 10).map(t => `
         <tr>
@@ -176,6 +186,12 @@ async function sendEmail() {
       ${failedTests.length > 10 ? `<p style="font-size:12px;color:#888;">...and ${failedTests.length - 10} more. See full report.</p>` : ''}
     </div>
 
+    <!-- CSV note -->
+    <div style="margin-top:16px;padding:10px 14px;background:#f0f7ff;border:1px solid #cce0ff;border-radius:6px;font-size:13px;">
+      📎 <strong>Attached:</strong> Full test results as <code>test-results-run-${runNumber}.csv</code>
+      — open in Excel or Google Sheets for detailed analysis.
+    </div>
+
     <!-- CTA buttons -->
     <div style="margin-top:24px;display:flex;gap:12px;">
       <a href="${reportUrl}"
@@ -211,10 +227,10 @@ async function sendEmail() {
     to: process.env.EMAIL_TO,
     subject: `${statusEmoji} Playwright Report #${runNumber} — ${statusLabel} (${passed}/${total} passed)`,
     html: htmlBody,
-    attachments: attachments.slice(0, 5),
+    attachments,
   });
 
-  console.log('✅ Email sent — Allure 3 report link included!');
+  console.log('✅ Email sent — Allure 3 report link + CSV attached!');
 }
 
 sendEmail();
