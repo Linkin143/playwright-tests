@@ -60,7 +60,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ✅ Install Allure 3 CLI globally — fixes exit code 127 (command not found)
+      # ✅ Install Allure CLI globally
       - name: Install Allure CLI
         run: |
           npm install -g allure-commandline
@@ -69,11 +69,11 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      # ✅ Pre-create all output dirs — fixes "No such file or directory" errors
+      # ✅ Create all output dirs FIRST — before any step writes to them
       - name: Create output directories
         run: mkdir -p allure-results allure-report test-results
 
-      # 🧠 Load schedule config (for scheduled runs) — unchanged
+      # 🧠 Load schedule config — unchanged
       - name: Load Schedule Config
         id: config
         run: |
@@ -96,7 +96,7 @@ jobs:
           echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
 
       # 🔥 Dynamic Execution — unchanged logic
-      # ✅ `|| true` lets workflow continue to report even when tests fail
+      # ✅ `|| true` lets workflow continue to reporting even when tests fail
       - name: Run Playwright Tests
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -148,7 +148,6 @@ jobs:
       - name: Inject Allure Environment Info
         if: always()
         run: |
-          mkdir -p allure-results
           cat > allure-results/environment.properties << EOF
           Execution=GitHub Actions
           RunID=${{ github.run_id }}
@@ -168,7 +167,6 @@ jobs:
       - name: Add Allure Executor Info
         if: always()
         run: |
-          mkdir -p allure-results
           cat > allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
@@ -184,7 +182,6 @@ jobs:
       - name: Add Allure Failure Categories
         if: always()
         run: |
-          mkdir -p allure-results
           cat > allure-results/categories.json << 'EOF'
           [
             {
@@ -220,7 +217,7 @@ jobs:
           ]
           EOF
 
-      # ✅ Generate Allure 3 report using globally installed allure CLI
+      # ✅ Generate Allure 3 report — using `allure generate` (correct command)
       - name: Generate Allure Report
         if: always()
         run: |
@@ -236,11 +233,10 @@ jobs:
           report-directory: "./allure-report"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ✅ Export CSV — mkdir -p guarantees dir exists
+      # ✅ Export CSV
       - name: Export Test Results CSV
         if: always()
         run: |
-          mkdir -p test-results
           echo "Test Name,Status,Duration(ms),Suite,Browser" > test-results/allure-summary.csv
           if [ -d "allure-results" ]; then
             for f in allure-results/*-result.json; do
