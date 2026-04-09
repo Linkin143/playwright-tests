@@ -214,7 +214,7 @@ jobs:
       - name: Generate Allure Report
         if: always()
         run: |
-          allure generate allure-results -o allure-report
+          allure generate allure-results -o allure-report --name "Test Lumen Automation Report"
           echo "✅ Report generated. Contents:"
           ls allure-report/
 
