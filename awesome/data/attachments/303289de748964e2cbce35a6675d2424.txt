@@ -1,0 +1,12 @@
+[1-2] MSN loaded and stabilised
+[3] Personalize clicked
+[4] Dialog "Personalize My Feed" opened ✅
+[5] "Discover" tab visible ✅
+[6] "Following" tab visible ✅
+[7] "Blocked" tab visible ✅
+[8] Channel search field visible ✅
+[9] "Close" button visible ✅
+[10] Clicked "Close"
+[11] Dialog no longer visible ✅
+
+✅ ALL ASSERTIONS PASSED
