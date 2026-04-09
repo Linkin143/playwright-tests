@@ -53,23 +53,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ✅ Allure 3 requires Java
-      - name: Setup Java (required by Allure 3)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      # ✅ Install Allure CLI globally
-      - name: Install Allure CLI
+      # ✅ Allure 3 CLI — pure TypeScript, no Java needed
+      - name: Install Allure 3 CLI
         run: |
-          npm install -g allure-commandline
+          npm install -g allure
           allure --version
 
       - name: Install browsers
         run: npx playwright install --with-deps
 
-      # ✅ Create all output dirs FIRST — before any step writes to them
+      # ✅ Create allure dirs — test-results already exists in repo
       - name: Create output directories
         run: mkdir -p allure-results allure-report test-results
 
