@@ -53,12 +53,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ✅ Allure 3 CLI — pure TypeScript, no Java needed
-      - name: Install Allure 3 CLI
-        run: |
-          npm install -g allure
-          allure --version
-
       - name: Install browsers
         run: npx playwright install --with-deps
 
@@ -150,18 +144,16 @@ jobs:
           }
           EOF
 
-      # ✅ Generate Allure 3 report
-      # Uses allurerc.mjs automatically for name + logo
+      # ✅ Generate Allure 3 report using npx (avoids global install path issues)
       - name: Generate Allure Report
         if: always()
         run: |
-          rm -rf allure-report allure-report-tmp
-          allure generate allure-results -o allure-report-tmp || {
+          rm -rf allure-report
+          npx allure generate allure-results -o allure-report || {
             echo "❌ Allure generate failed. Full log:"
-            cat /home/runner/.allure/logs/*.log
+            cat /home/runner/.allure/logs/*.log 2>/dev/null || echo "No logs found"
             exit 1
           }
-          mv allure-report-tmp allure-report
           echo "✅ Report generated. Contents:"
           ls allure-report/
 
