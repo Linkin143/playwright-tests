@@ -1,4 +1,6 @@
 import { defineConfig } from "@playwright/test";
+import { Status } from "allure-js-commons";
+import * as os from "node:os";
 
 export default defineConfig({
   testDir: "./tests",
@@ -16,12 +18,94 @@ export default defineConfig({
   },
 
   reporter: [
-  ['list'],
-  ['html', { outputFolder: 'test-results/html-report', open: 'never' }],
-  ['json', { outputFile: 'test-results/results.json' }],
-  ['junit', { outputFile: 'test-results/junit.xml' }],
-  ['allure-playwright']
-],
+    ["list"],
+    ["html", { outputFolder: "test-results/html-report", open: "never" }],
+    ["json", { outputFile: "test-results/results.json" }],
+    ["junit", { outputFile: "test-results/junit.xml" }],
+    [
+      "allure-playwright",
+      {
+        resultsDir: "allure-results",
+
+        // ✅ Show full detail and suite titles
+        detail: true,
+        suiteTitle: true,
+
+        // ✅ Customize report name based on test file
+        // Each spec file gets its own suite label derived from its filename
+        suiteLabels: true,
+
+        // ✅ External links (customize URLs to match your tools)
+        links: {
+          issue: {
+            nameTemplate: "Issue #%s",
+            urlTemplate: "https://issues.example.com/%s",
+          },
+          tms: {
+            nameTemplate: "TMS #%s",
+            urlTemplate: "https://tms.example.com/%s",
+          },
+          jira: {
+            urlTemplate: (v: string) =>
+              `https://jira.example.com/browse/${v}`,
+          },
+        },
+
+        // ✅ Failure categories — shown in Allure 3 dashboard
+        categories: [
+          {
+            name: "⏱ Timeout Issues",
+            messageRegex: ".*[Tt]imeout.*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+          },
+          {
+            name: "🔍 Element Not Found",
+            messageRegex: ".*element.*|.*locator.*|.*selector.*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+          },
+          {
+            name: "✅ Assertion Failures",
+            messageRegex: ".*expect.*|.*assert.*|.*toBe.*|.*toEqual.*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.FAILED],
+          },
+          {
+            name: "🌐 Navigation Failures",
+            messageRegex: ".*navigation.*|.*net::ERR.*|.*ERR_.*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+          },
+          {
+            name: "🔐 Auth / Login Failures",
+            messageRegex: ".*login.*|.*auth.*|.*401.*|.*403.*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+          },
+          {
+            name: "💥 Unexpected Errors",
+            messageRegex: ".*",
+            traceRegex: ".*",
+            matchedStatuses: [Status.BROKEN],
+          },
+        ],
+
+        // ✅ Environment info shown on Allure 3 dashboard
+        environmentInfo: {
+          os_platform: os.platform(),
+          os_release: os.release(),
+          os_version: os.version(),
+          node_version: process.version,
+          ci: process.env.CI ? "GitHub Actions" : "Local",
+          branch: process.env.GITHUB_REF_NAME ?? "local",
+          actor: process.env.GITHUB_ACTOR ?? "local",
+          run_number: process.env.GITHUB_RUN_NUMBER ?? "0",
+          repository: process.env.GITHUB_REPOSITORY ?? "local",
+        },
+      },
+    ],
+  ],
 
   use: {
     headless: true,

@@ -32,6 +32,11 @@ on:
           tests/msn/a.spec.ts,tests/msn/b.spec.ts
         required: false
 
+permissions:
+  contents: write       # needed for gh-pages deploy
+  pull-requests: write  # needed for allure-action PR comments
+  checks: write         # needed for allure-action check runs
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -50,6 +55,10 @@ jobs:
 
       - name: Install browsers
         run: npx playwright install --with-deps
+
+      # ✅ Install Allure CLI (Allure 3)
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline --save-dev
 
       # 🧠 Load schedule config (for scheduled runs)
       - name: Load Schedule Config
@@ -73,7 +82,7 @@ jobs:
           echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
           echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
 
-      # 🔥 Dynamic Execution (Manual + Schedule)
+      # 🔥 Dynamic Execution (Manual + Schedule) — unchanged
       - name: Run Playwright Tests
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -113,7 +122,7 @@ jobs:
             npx playwright test
           fi
 
-      # ✅ Preserve history (fix TREND graph)
+      # ✅ Preserve Allure history for TREND graphs
       - name: Preserve Allure History
         if: always()
         run: |
@@ -121,64 +130,133 @@ jobs:
             cp -r allure-report/history allure-results/
           fi
 
-      # ✅ Inject environment metadata
+      # ✅ Inject rich environment metadata into Allure 3
       - name: Inject Allure Environment Info
         if: always()
         run: |
           mkdir -p allure-results
 
-          echo "Execution=GitHub Actions" >> allure-results/environment.properties
-          echo "RunID=${{ github.run_id }}" >> allure-results/environment.properties
-          echo "RunNumber=${{ github.run_number }}" >> allure-results/environment.properties
-          echo "Branch=${{ github.ref_name }}" >> allure-results/environment.properties
-          echo "Commit=${{ github.sha }}" >> allure-results/environment.properties
-          echo "Actor=${{ github.actor }}" >> allure-results/environment.properties
-          echo "Repository=${{ github.repository }}" >> allure-results/environment.properties
-          echo "ExecutionMode=${{ github.event.inputs.mode || steps.config.outputs.mode }}" >> allure-results/environment.properties
+          cat > allure-results/environment.properties << EOF
+          Execution=GitHub Actions
+          RunID=${{ github.run_id }}
+          RunNumber=${{ github.run_number }}
+          Branch=${{ github.ref_name }}
+          Commit=${{ github.sha }}
+          Actor=${{ github.actor }}
+          Repository=${{ github.repository }}
+          ExecutionMode=${{ github.event.inputs.mode || steps.config.outputs.mode }}
+          NodeVersion=$(node --version)
+          OS=$(uname -s)
+          OSRelease=$(uname -r)
+          ReportURL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          EOF
 
-      # ✅ Add executor info (CI linking)
-      - name: Add Allure Executor
+      # ✅ Executor info — links CI run in Allure 3 dashboard
+      - name: Add Allure Executor Info
         if: always()
         run: |
           mkdir -p allure-results
 
-          echo "{
-            \"name\": \"GitHub Actions\",
-            \"type\": \"CI\",
-            \"buildName\": \"Run #${{ github.run_number }}\",
-            \"buildUrl\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
-            \"reportUrl\": \"https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/\"
-          }" > allure-results/executor.json
+          cat > allure-results/executor.json << EOF
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "Run #${{ github.run_number }} — ${{ github.ref_name }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/",
+            "reportName": "Allure Report — ${{ github.event.repository.name }}"
+          }
+          EOF
 
-      # ✅ Add failure categories
-      - name: Add Allure Categories
+      # ✅ Rich failure categories for Allure 3 dashboard
+      - name: Add Allure Failure Categories
         if: always()
         run: |
           mkdir -p allure-results
 
-          echo '[
+          cat > allure-results/categories.json << 'EOF'
+          [
             {
-              "name": "Timeout Issues",
-              "matchedStatuses": ["failed"],
-              "messageRegex": "Timeout"
+              "name": "⏱ Timeout Issues",
+              "matchedStatuses": ["failed", "broken"],
+              "messageRegex": ".*[Tt]imeout.*"
             },
             {
-              "name": "Element Issues",
-              "matchedStatuses": ["failed"],
-              "messageRegex": "element"
+              "name": "🔍 Element Not Found",
+              "matchedStatuses": ["failed", "broken"],
+              "messageRegex": ".*element.*|.*locator.*|.*selector.*"
             },
             {
-              "name": "Assertion Failures",
+              "name": "✅ Assertion Failures",
               "matchedStatuses": ["failed"],
-              "messageRegex": "expect"
+              "messageRegex": ".*expect.*|.*assert.*|.*toBe.*|.*toEqual.*"
+            },
+            {
+              "name": "🌐 Navigation Failures",
+              "matchedStatuses": ["failed", "broken"],
+              "messageRegex": ".*navigation.*|.*net::ERR.*|.*ERR_.*"
+            },
+            {
+              "name": "🔐 Auth / Login Failures",
+              "matchedStatuses": ["failed", "broken"],
+              "messageRegex": ".*login.*|.*auth.*|.*401.*|.*403.*"
+            },
+            {
+              "name": "💥 Unexpected Errors",
+              "matchedStatuses": ["broken"],
+              "messageRegex": ".*"
             }
-          ]' > allure-results/categories.json
+          ]
+          EOF
 
+      # ✅ Generate Allure 3 report with custom name
       - name: Generate Allure Report
         if: always()
-        run: npx allure generate allure-results --clean -o allure-report
+        run: |
+          REPORT_NAME="Playwright Report — Run #${{ github.run_number }} (${{ github.ref_name }})"
+          npx allure generate allure-results --clean -o allure-report --name "$REPORT_NAME"
 
-      - name: Deploy Allure Report
+      # ✅ Post Allure summary to PR (Allure 3 official action)
+      - name: Post Allure Summary to PR
+        if: always()
+        uses: allure-framework/allure-action@v0
+        with:
+          report-directory: "./allure-report"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ✅ Export results as CSV artifact for download
+      - name: Export Test Results CSV
+        if: always()
+        run: |
+          echo "Test File,Status,Duration(ms),Suite,Browser" > test-results/allure-summary.csv
+          if [ -d "allure-results" ]; then
+            for f in allure-results/*-result.json; do
+              [ -f "$f" ] || continue
+              NAME=$(jq -r '.name // "unknown"' "$f")
+              STATUS=$(jq -r '.status // "unknown"' "$f")
+              DURATION=$(jq -r '.stop - .start // 0' "$f" 2>/dev/null || echo "0")
+              SUITE=$(jq -r '.labels[]? | select(.name=="suite") | .value // "unknown"' "$f" | head -1)
+              BROWSER=$(jq -r '.labels[]? | select(.name=="thread") | .value // "chromium"' "$f" | head -1)
+              echo "\"$NAME\",\"$STATUS\",\"$DURATION\",\"$SUITE\",\"$BROWSER\"" >> test-results/allure-summary.csv
+            done
+          fi
+
+      # ✅ Upload CSV + full results as downloadable artifacts
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-run-${{ github.run_number }}
+          path: |
+            test-results/allure-summary.csv
+            test-results/results.json
+            test-results/junit.xml
+            test-results/html-report/
+            allure-report/
+          retention-days: 30
+
+      # ✅ Deploy Allure Report to GitHub Pages
+      - name: Deploy Allure Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -186,6 +264,7 @@ jobs:
           publish_dir: ./allure-report
           keep_files: true
 
+      # ✅ Send Email — unchanged
       - name: Send Email
         if: always()
         run: node sendReport.js
