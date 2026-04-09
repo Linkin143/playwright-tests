@@ -1,0 +1,9 @@
+[1-2] MSN loaded and stabilised
+[3] "Open settings" button visible ✅
+[4] Clicked "Open settings"
+[5-6] Settings panel open confirmed (aria-expanded=true, Close button present) ✅
+[7] Clicked "Close settings"
+[8] Settings panel closed (aria-expanded≠true) ✅
+[9] "Open settings" button visible again ✅
+
+✅ ALL ASSERTIONS PASSED
