@@ -1,134 +1,196 @@
 name: Playwright + Allure Report
 
 on:
-  schedule:
-    - cron: '40 3 * * *'  # 09:10 AM IST daily
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: "Select test execution mode"
-        required: false
-        default: "all"
-        type: choice
-        options:
-          - all
-          - file
-          - folder
-          - multiple
+schedule:
+- cron: '40 3 * * *'  # 09:10 AM IST daily
+workflow_dispatch:
+inputs:
+mode:
+description: "Select test execution mode"
+required: false
+default: "all"
+type: choice
+options:
+- all
+- file
+- folder
+- multiple
 
-      test_path:
-        description: |
-          File or folder path
-          Examples:
-          - tests/example.spec.ts
-          - tests/msn/
-        required: false
+test_path:
+    description: |
+      File or folder path
+      Examples:
+      - tests/example.spec.ts
+      - tests/msn/
+    required: false
 
-      test_list:
-        description: |
-          Comma-separated test files
-          Example:
-          tests/msn/a.spec.ts,tests/msn/b.spec.ts
-        required: false
+  test_list:
+    description: |
+      Comma-separated test files
+      Example:
+      tests/msn/a.spec.ts,tests/msn/b.spec.ts
+    required: false
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+test:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+  - name: Setup Node
+    uses: actions/setup-node@v4
+    with:
+      node-version: 18
 
-      - name: Install dependencies
-        run: npm ci
+  - name: Install dependencies
+    run: npm ci
 
-      - name: Install browsers
-        run: npx playwright install --with-deps
+  - name: Install browsers
+    run: npx playwright install --with-deps
 
-      # 🧠 Load schedule config (for scheduled runs)
-      - name: Load Schedule Config
-        id: config
-        run: |
-          DAY=$(date +%A | tr '[:upper:]' '[:lower:]')
-          echo "Today: $DAY"
+  # 🧠 Load schedule config (for scheduled runs)
+  - name: Load Schedule Config
+    id: config
+    run: |
+      DAY=$(date +%A | tr '[:upper:]' '[:lower:]')
+      echo "Today: $DAY"
 
-          CONFIG_FILE=".github/schedule-config.json"
+      CONFIG_FILE=".github/schedule-config.json"
 
-          if [ -f "$CONFIG_FILE" ]; then
-            MODE=$(jq -r --arg day "$DAY" '.[$day].mode // .default.mode' $CONFIG_FILE)
-            TEST_PATH=$(jq -r --arg day "$DAY" '.[$day].test_path // empty' $CONFIG_FILE)
-            TEST_LIST=$(jq -r --arg day "$DAY" '.[$day].test_list // empty' $CONFIG_FILE)
-          else
-            echo "Config file not found, using defaults"
-            MODE="all"
-          fi
+      if [ -f "$CONFIG_FILE" ]; then
+        MODE=$(jq -r --arg day "$DAY" '.[$day].mode // .default.mode' $CONFIG_FILE)
+        TEST_PATH=$(jq -r --arg day "$DAY" '.[$day].test_path // empty' $CONFIG_FILE)
+        TEST_LIST=$(jq -r --arg day "$DAY" '.[$day].test_list // empty' $CONFIG_FILE)
+      else
+        echo "Config file not found, using defaults"
+        MODE="all"
+      fi
 
-          echo "mode=$MODE" >> $GITHUB_OUTPUT
-          echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
-          echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
+      echo "mode=$MODE" >> $GITHUB_OUTPUT
+      echo "test_path=$TEST_PATH" >> $GITHUB_OUTPUT
+      echo "test_list=$TEST_LIST" >> $GITHUB_OUTPUT
 
-      # 🔥 Dynamic Execution (Manual + Schedule)
-      - name: Run Playwright Tests
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            MODE="${{ github.event.inputs.mode || 'all' }}"
-            TEST_PATH="${{ github.event.inputs.test_path }}"
-            TEST_LIST="${{ github.event.inputs.test_list }}"
-            echo "Manual run"
-          else
-            MODE="${{ steps.config.outputs.mode }}"
-            TEST_PATH="${{ steps.config.outputs.test_path }}"
-            TEST_LIST="${{ steps.config.outputs.test_list }}"
-            echo "Scheduled run"
-          fi
+  # 🔥 Dynamic Execution (Manual + Schedule)
+  - name: Run Playwright Tests
+    run: |
+      if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+        MODE="${{ github.event.inputs.mode || 'all' }}"
+        TEST_PATH="${{ github.event.inputs.test_path }}"
+        TEST_LIST="${{ github.event.inputs.test_list }}"
+        echo "Manual run"
+      else
+        MODE="${{ steps.config.outputs.mode }}"
+        TEST_PATH="${{ steps.config.outputs.test_path }}"
+        TEST_LIST="${{ steps.config.outputs.test_list }}"
+        echo "Scheduled run"
+      fi
 
-          echo "Mode: $MODE"
+      echo "Mode: $MODE"
 
-          if [ "$MODE" = "skip" ]; then
-            echo "Skipping execution for today"
-            exit 0
-          fi
+      if [ "$MODE" = "skip" ]; then
+        echo "Skipping execution for today"
+        exit 0
+      fi
 
-          if [ "$MODE" = "file" ]; then
-            echo "Running file: $TEST_PATH"
-            npx playwright test "$TEST_PATH"
+      if [ "$MODE" = "file" ]; then
+        echo "Running file: $TEST_PATH"
+        npx playwright test "$TEST_PATH"
 
-          elif [ "$MODE" = "folder" ]; then
-            echo "Running folder: $TEST_PATH"
-            npx playwright test "$TEST_PATH"
+      elif [ "$MODE" = "folder" ]; then
+        echo "Running folder: $TEST_PATH"
+        npx playwright test "$TEST_PATH"
 
-          elif [ "$MODE" = "multiple" ]; then
-            echo "Running multiple files"
-            FILES=$(echo "$TEST_LIST" | tr ',' ' ')
-            npx playwright test $FILES
+      elif [ "$MODE" = "multiple" ]; then
+        echo "Running multiple files"
+        FILES=$(echo "$TEST_LIST" | tr ',' ' ')
+        npx playwright test $FILES
 
-          else
-            echo "Running all tests"
-            npx playwright test
-          fi
+      else
+        echo "Running all tests"
+        npx playwright test
+      fi
 
-      - name: Generate Allure Report
-        if: always()
-        run: npx allure generate allure-results --clean -o allure-report
+  # ✅ Preserve history (fix TREND graph)
+  - name: Preserve Allure History
+    if: always()
+    run: |
+      if [ -d "allure-report/history" ]; then
+        cp -r allure-report/history allure-results/
+      fi
 
-      - name: Deploy Allure Report
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
-          keep_files: true
+  # ✅ Inject environment metadata
+  - name: Inject Allure Environment Info
+    if: always()
+    run: |
+      mkdir -p allure-results
 
-      - name: Send Email
-        if: always()
-        run: node sendReport.js
-        env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          REPORT_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+      echo "Execution=GitHub Actions" >> allure-results/environment.properties
+      echo "RunID=${{ github.run_id }}" >> allure-results/environment.properties
+      echo "RunNumber=${{ github.run_number }}" >> allure-results/environment.properties
+      echo "Branch=${{ github.ref_name }}" >> allure-results/environment.properties
+      echo "Commit=${{ github.sha }}" >> allure-results/environment.properties
+      echo "Actor=${{ github.actor }}" >> allure-results/environment.properties
+      echo "Repository=${{ github.repository }}" >> allure-results/environment.properties
+      echo "ExecutionMode=${{ github.event.inputs.mode || steps.config.outputs.mode }}" >> allure-results/environment.properties
+
+  # ✅ Add executor info (CI linking)
+  - name: Add Allure Executor
+    if: always()
+    run: |
+      mkdir -p allure-results
+
+      echo "{
+        \"name\": \"GitHub Actions\",
+        \"type\": \"CI\",
+        \"buildName\": \"Run #${{ github.run_number }}\",
+        \"buildUrl\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+        \"reportUrl\": \"https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/\"
+      }" > allure-results/executor.json
+
+  # ✅ Add failure categories
+  - name: Add Allure Categories
+    if: always()
+    run: |
+      mkdir -p allure-results
+
+      echo '[
+        {
+          "name": "Timeout Issues",
+          "matchedStatuses": ["failed"],
+          "messageRegex": "Timeout"
+        },
+        {
+          "name": "Element Issues",
+          "matchedStatuses": ["failed"],
+          "messageRegex": "element"
+        },
+        {
+          "name": "Assertion Failures",
+          "matchedStatuses": ["failed"],
+          "messageRegex": "expect"
+        }
+      ]' > allure-results/categories.json
+
+  - name: Generate Allure Report
+    if: always()
+    run: npx allure generate allure-results --clean -o allure-report
+
+  - name: Deploy Allure Report
+    if: always()
+    uses: peaceiris/actions-gh-pages@v3
+    with:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      publish_dir: ./allure-report
+      keep_files: true
+
+  - name: Send Email
+    if: always()
+    run: node sendReport.js
+    env:
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      REPORT_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
