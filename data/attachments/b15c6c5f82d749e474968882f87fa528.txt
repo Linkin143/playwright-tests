@@ -1,0 +1,15 @@
+[1-2] MSN loaded and stabilised
+[3] Weather widget found: "Washington: Clear, 5 °C" ✅
+[4] Temperature displayed in widget ✅
+[5] City detected: "Washington" ✅
+[6] Navigated to weather forecast page ✅
+[7] Weather page loaded: "Washington, Virginia, United States Weather Forecast | MSN Weather" ✅
+[8] Extended forecast displayed for "Washington, Virginia, United States" ✅
+[9a] Temperature element present ✅
+[9b] Humidity text present ✅
+[9c] Weather conditions text present ✅
+[10] Navigated back to homepage
+[11] Homepage loaded successfully ✅
+[12] Weather widget stable: "Washington: Clear, 5 °C" ✅
+
+✅ ALL ASSERTIONS PASSED
