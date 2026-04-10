@@ -1,0 +1,19 @@
+[1-2] MSN loaded
+[3] Personalize clicked
+[4] Dialog opened ✅
+[5] Discover clicked ✅
+[7] Typed "The Times Of India"
+[8] Enter pressed
+[9] TOI Follow=1 Unfollow=0
+[10] Clicked Follow TOI
+[10] ✅ TOI followed
+[11] Search cleared
+[12] Typed "India Today"
+[13] Enter pressed
+[14] IT Follow=2 Unfollow=0
+[15] Clicked Follow India Today
+[15] ✅ India Today followed
+[16] Close clicked
+[16] ✅ Dialog closed
+
+✅ ALL ASSERTIONS PASSED
