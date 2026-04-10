@@ -112,6 +112,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      retries: 1,
       use: {
         browserName: "chromium",
         viewport: null,
